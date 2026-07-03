@@ -7,11 +7,11 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.draco.ladb.R
 import com.draco.ladb.databinding.ActivityPairBinding
-import com.draco.ladb.services.OverlayService
+import com.draco.ladb.receivers.PairNotificationReceiver
+import com.draco.ladb.services.PairNotificationManager
 import com.google.android.material.snackbar.Snackbar
 
 class PairActivity : AppCompatActivity() {
@@ -26,13 +26,13 @@ class PairActivity : AppCompatActivity() {
 
     private val pairReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val skipped = intent.getBooleanExtra(OverlayService.EXTRA_SKIPPED, false)
+            val skipped = intent.getBooleanExtra(PairNotificationReceiver.EXTRA_SKIPPED, false)
             val result = Intent().apply {
                 if (skipped) {
                     putExtra(EXTRA_SKIPPED, true)
                 } else {
-                    putExtra(EXTRA_PORT, intent.getStringExtra(OverlayService.EXTRA_PORT))
-                    putExtra(EXTRA_CODE, intent.getStringExtra(OverlayService.EXTRA_CODE))
+                    putExtra(EXTRA_PORT, intent.getStringExtra(PairNotificationReceiver.EXTRA_PORT))
+                    putExtra(EXTRA_CODE, intent.getStringExtra(PairNotificationReceiver.EXTRA_CODE))
                 }
             }
             setResult(RESULT_OK, result)
@@ -48,8 +48,8 @@ class PairActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(false)
         title = getString(R.string.pair_title)
 
-        // Register receiver for overlay result
-        val filter = IntentFilter(OverlayService.ACTION_PAIR_RESULT)
+        // Listen for result from notification
+        val filter = IntentFilter(PairNotificationReceiver.ACTION_PAIR_RESULT)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(pairReceiver, filter, RECEIVER_NOT_EXPORTED)
         } else {
@@ -57,33 +57,16 @@ class PairActivity : AppCompatActivity() {
         }
 
         binding.openWirelessDebugging.setOnClickListener {
-            if (!Settings.canDrawOverlays(this)) {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    android.net.Uri.parse("package:$packageName")
-                )
-                startActivity(intent)
-                Toast.makeText(this,
-                    "Grant 'Display over other apps' permission, then tap again",
-                    Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
-            // Start overlay service
-            val serviceIntent = Intent(this, OverlayService::class.java).apply {
-                action = OverlayService.ACTION_START
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
-            // Open Wireless Debugging behind the overlay
+            // Post pairing notification
+            PairNotificationManager.show(this)
+            // Open Wireless Debugging
             openWirelessDebugging()
         }
 
         binding.btnPair.setOnClickListener { submitPair() }
 
         binding.btnSkip.setOnClickListener {
+            PairNotificationManager.dismiss(this)
             val result = Intent().apply { putExtra(EXTRA_SKIPPED, true) }
             setResult(RESULT_OK, result)
             finish()
@@ -119,6 +102,7 @@ class PairActivity : AppCompatActivity() {
             Snackbar.make(binding.root, "Enter both Port and Pairing code", Snackbar.LENGTH_SHORT).show()
             return
         }
+        PairNotificationManager.dismiss(this)
         val result = Intent().apply {
             putExtra(EXTRA_PORT, port)
             putExtra(EXTRA_CODE, code)

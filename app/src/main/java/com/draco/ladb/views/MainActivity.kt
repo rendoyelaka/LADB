@@ -10,7 +10,6 @@ import android.widget.ScrollView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
@@ -24,9 +23,7 @@ import com.draco.ladb.BuildConfig
 import com.draco.ladb.R
 import com.draco.ladb.databinding.ActivityMainBinding
 import com.draco.ladb.viewmodels.MainActivityViewModel
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.textfield.TextInputEditText
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
 import android.os.Build
@@ -40,7 +37,7 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MainActivityViewModel by viewModels()
     private lateinit var binding: ActivityMainBinding
 
-    private lateinit var pairDialog: MaterialAlertDialogBuilder
+
 
     private var lastCommand = ""
 
@@ -48,6 +45,29 @@ class MainActivity : AppCompatActivity() {
         val text = it.data?.getStringExtra(Intent.EXTRA_TEXT) ?: return@registerForActivityResult
         binding.command.setText(text)
     }
+
+    private var pairCallback: ((Boolean) -> Unit)? = null
+    private var pairActivityResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val data = result.data
+        if (result.resultCode == RESULT_OK && data != null) {
+            val skipped = data.getBooleanExtra(PairActivity.EXTRA_SKIPPED, false)
+            if (skipped) {
+                PreferenceManager.getDefaultSharedPreferences(this).edit(true) {
+                    putBoolean(getString(R.string.auto_shell_key), false)
+                }
+                pairCallback?.invoke(true)
+            } else {
+                val port = data.getStringExtra(PairActivity.EXTRA_PORT) ?: ""
+                val code = data.getStringExtra(PairActivity.EXTRA_CODE) ?: ""
+                lifecycleScope.launch(Dispatchers.IO) {
+                    viewModel.adb.debug("Trying to pair...")
+                    val success = viewModel.adb.pair(port, code)
+                    pairCallback?.invoke(success)
+                }
+            }
+        }
+    }
+
 
     private fun setupUI() {
         /* Fix stupid Google edge-to-edge bullshit */
@@ -71,14 +91,6 @@ class MainActivity : AppCompatActivity() {
         supportActionBar!!.elevation = 0f
         WindowCompat.getInsetsController(window, window.decorView)
             .isAppearanceLightStatusBars = false
-
-        pairDialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.pair_title)
-            .setCancelable(false)
-            .setView(R.layout.dialog_pair)
-            .setPositiveButton(R.string.pair, null)
-            .setNegativeButton(R.string.help, null)
-            .setNeutralButton(R.string.skip, null)
 
         binding.command.setOnKeyListener { _, keyCode, keyEvent ->
             if (keyCode == KeyEvent.KEYCODE_ENTER && keyEvent.action == KeyEvent.ACTION_DOWN) {
@@ -257,76 +269,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Ask the user to pair
+     * Ask the user to pair via full-screen PairActivity
      */
     private fun askToPair(callback: ((Boolean) -> (Unit))? = null) {
-        pairDialog
-            .create()
-            .apply {
-                setOnShowListener {
-                    getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val port = findViewById<TextInputEditText>(R.id.port)!!.text.toString()
-                        val code = findViewById<TextInputEditText>(R.id.code)!!.text.toString()
-                        dismiss()
-
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            viewModel.adb.debug("Trying to pair...")
-                            val success = viewModel.adb.pair(port, code)
-                            callback?.invoke(success)
-                        }
-                    }
-
-                    getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.tutorial_url)))
-                        try {
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            Snackbar.make(
-                                binding.output,
-                                getString(R.string.snackbar_intent_failed),
-                                Snackbar.LENGTH_SHORT
-                            )
-                                .show()
-                        }
-                    }
-
-                    getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                        PreferenceManager.getDefaultSharedPreferences(context).edit(true) {
-                            putBoolean(getString(R.string.auto_shell_key), false)
-                        }
-                        dismiss()
-                        callback?.invoke(true)
-                    }
-
-                    findViewById<com.google.android.material.button.MaterialButton>(R.id.open_wireless_debugging)?.setOnClickListener {
-                        val intents = listOf(
-                            Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS"),
-                            Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS),
-                            Intent(android.provider.Settings.ACTION_SETTINGS)
-                        )
-                        var launched = false
-                        for (intent in intents) {
-                            try {
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                                startActivity(intent)
-                                launched = true
-                                break
-                            } catch (e: Exception) {
-                                continue
-                            }
-                        }
-                        if (!launched) {
-                            Snackbar.make(
-                                binding.output,
-                                "Go to Settings → Developer Options → Wireless Debugging",
-                                Snackbar.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                }
-            }
-            .show()
+        pairCallback = callback
+        pairActivityResult.launch(Intent(this, PairActivity::class.java))
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

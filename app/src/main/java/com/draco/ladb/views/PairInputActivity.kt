@@ -35,6 +35,21 @@ class PairInputActivity : AppCompatActivity() {
             return
         }
 
+        // Open Wireless Debugging first so dialog appears on top of it
+        val wdIntents = listOf(
+            Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS"),
+            Intent("com.android.settings.WIRELESS_DEBUGGING"),
+            android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
+        )
+        for (action in wdIntents) {
+            try {
+                val i = if (action is Intent) action else Intent(action as String)
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(i)
+                break
+            } catch (e: Exception) { continue }
+        }
+
         // Build single dialog with Port + Code fields
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -93,3 +108,4 @@ class PairInputActivity : AppCompatActivity() {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
     }
 }
+

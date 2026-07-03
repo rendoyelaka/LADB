@@ -47,8 +47,16 @@
             android:id="@+id/open_wireless_debugging"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
+            android:layout_marginBottom="8dp"
             android:text="📶 Open Wireless Debugging"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scan_qr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="📷 Scan QR Code to Pair"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         <LinearLayout

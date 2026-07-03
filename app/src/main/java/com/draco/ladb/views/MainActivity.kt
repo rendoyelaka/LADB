@@ -301,14 +301,14 @@ class MainActivity : AppCompatActivity() {
 
                     findViewById<com.google.android.material.button.MaterialButton>(R.id.open_wireless_debugging)?.setOnClickListener {
                         val intents = listOf(
-                            Intent("com.android.settings.WIRELESS_DEBUGGING"),
+                            Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS"),
                             Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS),
                             Intent(android.provider.Settings.ACTION_SETTINGS)
                         )
                         var launched = false
                         for (intent in intents) {
                             try {
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                                 startActivity(intent)
                                 launched = true
                                 break
@@ -319,7 +319,7 @@ class MainActivity : AppCompatActivity() {
                         if (!launched) {
                             Snackbar.make(
                                 binding.output,
-                                "Could not open Wireless Debugging. Go to Settings → Developer Options → Wireless Debugging",
+                                "Go to Settings → Developer Options → Wireless Debugging",
                                 Snackbar.LENGTH_LONG
                             ).show()
                         }

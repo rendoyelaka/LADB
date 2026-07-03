@@ -36,5 +36,13 @@
                 android:inputType="number"
                 android:id="@+id/code" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/open_wireless_debugging"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="📶 Open Wireless Debugging"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
     </LinearLayout>
 </ScrollView>

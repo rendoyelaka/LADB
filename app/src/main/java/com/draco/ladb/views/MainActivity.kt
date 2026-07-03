@@ -300,34 +300,29 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     findViewById<com.google.android.material.button.MaterialButton>(R.id.open_wireless_debugging)?.setOnClickListener {
-                        // Launch Wireless Debugging settings
-                        try {
-                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            startActivity(intent)
-                        } catch (e: Exception) {
+                        val intents = listOf(
+                            Intent("com.android.settings.WIRELESS_DEBUGGING"),
+                            Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS),
+                            Intent(android.provider.Settings.ACTION_SETTINGS)
+                        )
+                        var launched = false
+                        for (intent in intents) {
                             try {
-                                val intent = Intent(android.provider.Settings.ACTION_SETTINGS)
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 startActivity(intent)
-                            } catch (ex: Exception) {
-                                ex.printStackTrace()
+                                launched = true
+                                break
+                            } catch (e: Exception) {
+                                continue
                             }
                         }
-                        // Float LADB window so it stays visible on top
-                        val dm = resources.displayMetrics
-                        val floatIntent = Intent(this@MainActivity, MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT)
-                            addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+                        if (!launched) {
+                            Snackbar.make(
+                                binding.output,
+                                "Could not open Wireless Debugging. Go to Settings → Developer Options → Wireless Debugging",
+                                Snackbar.LENGTH_LONG
+                            ).show()
                         }
-                        val options = android.app.ActivityOptions.makeBasic().apply {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                                val w = dm.widthPixels
-                                val h = dm.heightPixels
-                                launchBounds = android.graphics.Rect(0, h / 2, w, h)
-                            }
-                        }
-                        startActivity(floatIntent, options.toBundle())
                     }
                 }
             }

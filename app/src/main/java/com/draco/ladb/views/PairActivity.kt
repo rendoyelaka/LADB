@@ -29,6 +29,22 @@ class PairActivity : AppCompatActivity() {
         const val EXTRA_SKIPPED = "skipped"
     }
 
+    private val qrScanLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val port = result.data?.getStringExtra(QrScanActivity.EXTRA_PORT) ?: return@registerForActivityResult
+            val code = result.data?.getStringExtra(QrScanActivity.EXTRA_CODE) ?: return@registerForActivityResult
+            PairNotificationManager.dismiss(this)
+            val data = Intent().apply {
+                putExtra(EXTRA_PORT, port)
+                putExtra(EXTRA_CODE, code)
+            }
+            setResult(RESULT_OK, data)
+            finish()
+        }
+    }
+
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -89,6 +105,10 @@ class PairActivity : AppCompatActivity() {
         }
 
         binding.btnPair.setOnClickListener { submitPair() }
+
+        binding.scanQr.setOnClickListener {
+            qrScanLauncher.launch(Intent(this, QrScanActivity::class.java))
+        }
 
         binding.btnSkip.setOnClickListener {
             PairNotificationManager.dismiss(this)

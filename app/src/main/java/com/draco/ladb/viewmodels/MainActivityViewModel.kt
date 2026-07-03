@@ -15,8 +15,6 @@ import com.draco.ladb.BuildConfig
 import com.draco.ladb.R
 import com.draco.ladb.utils.ADB
 import com.draco.ladb.utils.DnsDiscover
-import com.github.javiersantos.piracychecker.PiracyChecker
-import com.github.javiersantos.piracychecker.piracyChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -28,7 +26,6 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
 
     val isPairing = MutableLiveData<Boolean>()
 
-    private var checker: PiracyChecker? = null
     private val sharedPreferences = PreferenceManager
         .getDefaultSharedPreferences(application.applicationContext)
 
@@ -67,24 +64,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
      *
      * @param activity Activity to use when showing the error
      */
-    fun piracyCheck(activity: Activity) {
-        if (checker != null || !BuildConfig.ANTI_PIRACY)
-            return
-
-        val context = getApplication<Application>().applicationContext
-
-        checker = activity.piracyChecker {
-            enableGooglePlayLicensing("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoRTOoEZ/IFfA/JkBFIrZqLq7N66JtJFTn/5C2QMO2EIY6hG4yZ5YTA3JrbJuuGVzQE8j29s6Lwu+19KKZcITTkZjfgl2Zku8dWQKZFt46f7mh8s1spzzc6rmSWIBPZUxN6fIIz8ar+wzyZdu3z+Iiy31dUa11Pyh82oOsWH7514AYGeIDDlvB1vSfNF/9ycEqTv5UAOgHxqZ205C1VVydJyCEwWWVJtQ+Z5zRaocI6NGaYRopyZteCEdKkBsZ69vohk4zr2SpllM5+PKb1yM7zfsiFZZanp4JWDJ3jRjEHC4s66elWG45yQi+KvWRDR25MPXhdQ9+DMfF2Ao1NTrgQIDAQAB")
-            saveResultToSharedPreferences(
-                sharedPreferences,
-                context.getString(R.string.pref_key_verified)
-            )
-        }
-
-        val verified = sharedPreferences.getBoolean(context.getString(R.string.pref_key_verified), false)
-        if (!verified)
-            checker?.start()
-    }
+    fun piracyCheck(activity: Activity) { /* piracy check removed */ }
 
     /**
      * Continuously update shell output

@@ -36,11 +36,18 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
 
+      - name: Locate APK
+        id: apk
+        run: |
+          APK=$(find app/build/outputs -name "*.apk" | head -1)
+          echo "Found: $APK"
+          echo "path=$APK" >> $GITHUB_OUTPUT
+
       - name: Sign APK
         run: |
           BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)
-          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
-          
+          APK="${{ steps.apk.outputs.path }}"
+
           keytool -genkeypair \
             -alias ladb_key \
             -keyalg RSA \

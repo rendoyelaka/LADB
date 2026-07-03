@@ -29,13 +29,9 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
-import android.graphics.PixelFormat
 import android.os.Build
 import android.provider.Settings
 import android.util.Rational
-import android.view.Gravity
-import android.view.MotionEvent
-import android.view.WindowManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.system.exitProcess
@@ -47,8 +43,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pairDialog: MaterialAlertDialogBuilder
 
     private var lastCommand = ""
-    private var overlayView: View? = null
-    private var overlayWindowManager: WindowManager? = null
 
     private var bookmarkGetResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         val text = it.data?.getStringExtra(Intent.EXTRA_TEXT) ?: return@registerForActivityResult
@@ -183,58 +177,28 @@ class MainActivity : AppCompatActivity() {
     private fun showFloatingWindow() {
         if (!hasOverlayPermission()) {
             requestOverlayPermission()
+            Snackbar.make(
+                binding.output,
+                "Grant 'Display over other apps' permission, then try again.",
+                Snackbar.LENGTH_LONG
+            ).show()
             return
         }
-        if (overlayView != null) {
-            removeFloatingWindow()
-            return
+        // Launch MainActivity as a floating freeform window
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT)
+            addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
         }
-        val wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        overlayWindowManager = wm
-
-        val floatView = layoutInflater.inflate(R.layout.activity_main, null)
-        floatView.setBackgroundColor(0xDD000000.toInt())
-
-        val params = WindowManager.LayoutParams(
-            600, 400,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 100; y = 200
-        }
-
-        // Drag support
-        var initX = 0; var initY = 0; var initTouchX = 0f; var initTouchY = 0f
-        floatView.setOnTouchListener { v, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initX = params.x; initY = params.y
-                    initTouchX = event.rawX; initTouchY = event.rawY
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    params.x = initX + (event.rawX - initTouchX).toInt()
-                    params.y = initY + (event.rawY - initTouchY).toInt()
-                    wm.updateViewLayout(floatView, params)
-                }
+        val options = android.app.ActivityOptions.makeBasic().apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                launchBounds = android.graphics.Rect(50, 150, 700, 650)
             }
-            false
         }
-
-        wm.addView(floatView, params)
-        overlayView = floatView
+        startActivity(intent, options.toBundle())
     }
 
     private fun removeFloatingWindow() {
-        overlayView?.let {
-            overlayWindowManager?.removeView(it)
-            overlayView = null
-        }
+        // No-op — freeform windows are managed by the system
     }
 
     // ── Picture-in-Picture ─────────────────────────────────────────────────────

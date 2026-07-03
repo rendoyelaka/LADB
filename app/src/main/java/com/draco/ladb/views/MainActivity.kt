@@ -191,7 +191,8 @@ class MainActivity : AppCompatActivity() {
         }
         val options = android.app.ActivityOptions.makeBasic().apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                launchBounds = android.graphics.Rect(50, 150, 700, 650)
+                val dm = resources.displayMetrics
+                launchBounds = android.graphics.Rect(0, 0, dm.widthPixels, dm.heightPixels)
             }
         }
         startActivity(intent, options.toBundle())

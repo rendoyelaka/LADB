@@ -47,7 +47,10 @@ class OverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> showOverlay()
+            ACTION_START -> {
+                Toast.makeText(this, "Overlay starting...", Toast.LENGTH_SHORT).show()
+                showOverlay()
+            }
             ACTION_STOP  -> { removeOverlay(); stopSelf() }
         }
         return START_NOT_STICKY
